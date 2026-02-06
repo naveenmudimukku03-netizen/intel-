@@ -1,0 +1,2289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Review Assistant | AI-Powered Code Analysis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #111827;
+            --dark-light: #1f2937;
+            --gray: #6b7280;
+            --gray-light: #9ca3af;
+            --light: #f3f4f6;
+            --white: #ffffff;
+            --border: #374151;
+            --card-bg: #1f2937;
+            --code-bg: #0f172a;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            --radius: 8px;
+        }
+
+        .light-theme {
+            --dark: #f9fafb;
+            --dark-light: #f3f4f6;
+            --light: #ffffff;
+            --border: #e5e7eb;
+            --card-bg: #ffffff;
+            --code-bg: #f8fafc;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark);
+            color: var(--light);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: rgba(17, 24, 39, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo i {
+            color: var(--primary);
+            font-size: 1.8rem;
+        }
+
+        .logo-highlight {
+            color: var(--primary);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .btn-nav {
+            background-color: var(--primary);
+            color: white;
+            padding: 0.625rem 1.5rem;
+            border-radius: var(--radius);
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .btn-nav:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--light);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 5rem 1.5rem;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+        }
+
+        .hero-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.125rem;
+            color: var(--gray-light);
+            margin-bottom: 2rem;
+            max-width: 600px;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 3rem;
+            margin-top: 2rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--gray);
+            margin-top: 0.5rem;
+        }
+
+        .code-window {
+            background-color: var(--code-bg);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .window-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            background-color: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .window-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot.red { background-color: #ef4444; }
+        .dot.yellow { background-color: #f59e0b; }
+        .dot.green { background-color: #10b981; }
+
+        .window-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--gray-light);
+        }
+
+        .window-content {
+            padding: 1.5rem;
+        }
+
+        .window-content pre {
+            margin: 0;
+            overflow-x: auto;
+        }
+
+        .window-content code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        /* Review Section */
+        .review-section {
+            padding: 5rem 1.5rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .section-header p {
+            color: var(--gray);
+            font-size: 1.125rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .review-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .code-input-section, .review-output-section {
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .code-input-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        .code-input-section h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .language-selector {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        select {
+            background-color: var(--dark);
+            color: var(--light);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-icon {
+            background-color: var(--dark);
+            color: var(--light);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .code-editor-container {
+            margin-top: 1rem;
+        }
+
+        .editor-toolbar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-toolbar {
+            background-color: var(--dark);
+            color: var(--light);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-toolbar:hover {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .toolbar-spacer {
+            flex: 1;
+        }
+
+        .char-count {
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        .code-editor {
+            width: 100%;
+            min-height: 400px;
+            background-color: var(--code-bg);
+            color: #cbd5e1;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            resize: vertical;
+            margin-bottom: 1rem;
+        }
+
+        .editor-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .hint {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--gray);
+            max-width: 400px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-lg {
+            padding: 1rem 2rem;
+            font-size: 1.125rem;
+        }
+
+        .upload-section {
+            margin-top: 2rem;
+            padding: 2rem;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .upload-section:hover {
+            border-color: var(--primary);
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+
+        .upload-dropzone {
+            cursor: pointer;
+        }
+
+        .upload-dropzone i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .upload-sub {
+            font-size: 0.875rem;
+            color: var(--gray);
+            margin-top: 0.25rem;
+        }
+
+        /* Review Results */
+        .review-output-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--secondary);
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background-color: var(--dark);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-left: 4px solid;
+        }
+
+        .summary-card.critical {
+            border-left-color: var(--danger);
+        }
+
+        .summary-card.major {
+            border-left-color: var(--warning);
+        }
+
+        .summary-card.minor {
+            border-left-color: var(--info);
+        }
+
+        .summary-card.score {
+            border-left-color: var(--secondary);
+        }
+
+        .card-icon {
+            font-size: 1.5rem;
+        }
+
+        .critical .card-icon { color: var(--danger); }
+        .major .card-icon { color: var(--warning); }
+        .minor .card-icon { color: var(--info); }
+        .score .card-icon { color: var(--secondary); }
+
+        .card-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .card-label {
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        .issues-section {
+            margin-bottom: 2rem;
+        }
+
+        .issues-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .issues-header h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.125rem;
+        }
+
+        .issues-filter {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background-color: var(--dark);
+            color: var(--light);
+            border: 1px solid var(--border);
+            padding: 0.375rem 0.75rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .issues-list {
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+        }
+
+        .issue-item {
+            background-color: var(--dark);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .issue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .issue-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .issue-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .critical-badge {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .major-badge {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .minor-badge {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: var(--info);
+        }
+
+        .issue-line {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        .issue-desc {
+            color: var(--gray-light);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .issue-suggestion {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-left: 3px solid var(--secondary);
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            border-radius: 0 var(--radius) var(--radius) 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--gray);
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        /* Details Section */
+        .details-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            background: none;
+            color: var(--gray);
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: color 0.2s;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -0.5rem;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .detail-item {
+            background-color: var(--dark);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-header i {
+            font-size: 1.25rem;
+            color: var(--primary);
+        }
+
+        .detail-body {
+            color: var(--gray-light);
+            line-height: 1.6;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--gray);
+            margin-top: 0.5rem;
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 5rem 1.5rem;
+            background-color: rgba(15, 23, 42, 0.3);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 2rem;
+            border: 1px solid var(--border);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: 1.5rem;
+        }
+
+        .feature-list li {
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature-list i {
+            color: var(--secondary);
+        }
+
+        /* Process Section */
+        .process-section {
+            padding: 5rem 1.5rem;
+        }
+
+        .process-steps {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .process-steps::before {
+            content: '';
+            position: absolute;
+            left: 50px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: var(--border);
+            z-index: 1;
+        }
+
+        .process-step {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 3rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-number {
+            width: 100px;
+            height: 100px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            padding-top: 1.5rem;
+        }
+
+        /* Footer */
+        .footer {
+            background-color: rgba(15, 23, 42, 0.8);
+            padding: 4rem 1.5rem 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 4rem;
+        }
+
+        .footer-brand .logo {
+            margin-bottom: 1rem;
+        }
+
+        .footer-tagline {
+            color: var(--gray);
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .footer-links {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .footer-column h4 {
+            color: var(--light);
+            margin-bottom: 1.5rem;
+            font-size: 1.125rem;
+        }
+
+        .footer-column a, .footer-column span {
+            display: block;
+            color: var(--gray);
+            margin-bottom: 0.75rem;
+            transition: color 0.2s;
+        }
+
+        .footer-column a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            max-width: 1400px;
+            margin: 3rem auto 0;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--gray);
+            font-size: 0.875rem;
+        }
+
+        .footer-note {
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-content {
+            text-align: center;
+            max-width: 500px;
+            padding: 3rem;
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 2rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .loading-step {
+            padding: 0.5rem;
+            background-color: var(--dark);
+            border-radius: var(--radius);
+            font-size: 0.75rem;
+            color: var(--gray);
+            transition: all 0.3s;
+        }
+
+        .loading-step.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--secondary);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .hero-container,
+            .review-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero {
+                padding: 3rem 1.5rem;
+            }
+            
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .footer-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+            
+            .hero-stats {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .process-step {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .process-steps::before {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            
+            .step-number {
+                margin: 0 auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .summary-cards,
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .code-input-section .section-header,
+            .review-output-section .section-header,
+            .issues-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .language-selector,
+            .status-indicator,
+            .issues-filter {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+            
+            .editor-toolbar {
+                justify-content: center;
+            }
+            
+            .toolbar-spacer {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo">
+                    <i class="fas fa-code"></i>
+                    <span>CodeReview<span class="logo-highlight">AI</span></span>
+                </div>
+            </div>
+            <div class="nav-links">
+                <a href="#features"><i class="fas fa-star"></i> Features</a>
+                <a href="#how-it-works"><i class="fas fa-cogs"></i> How it Works</a>
+                <a href="#review-now" class="btn-nav">Review Code <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <button class="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span><i class="fas fa-robot"></i> AI-Powered Code Analysis</span>
+                </div>
+                <h1 class="hero-title">
+                    Automated <span class="gradient-text">Code Review</span> Assistant
+                </h1>
+                <p class="hero-subtitle">
+                    Specialized in software quality, security, and best practices. 
+                    Analyze source code, commit diffs, and pull requests with compressed context processing.
+                </p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number">10x</div>
+                        <div class="stat-label">Faster Reviews</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">85%</div>
+                        <div class="stat-label">Bug Detection</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">70%</div>
+                        <div class="stat-label">Token Reduction</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="code-window">
+                    <div class="window-header">
+                        <div class="window-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <div class="window-title">code_review.py</div>
+                    </div>
+                    <div class="window-content">
+                        <pre><code class="language-python">def analyze_code(code):
+    # Compressed context analysis
+    issues = detect_issues(code)
+    optimized = compress_context(code)
+    return CodeReview(issues, optimized)</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Review Interface -->
+    <section id="review-now" class="review-section">
+        <div class="section-header">
+            <h2><i class="fas fa-search"></i> Code Analysis Panel</h2>
+            <p>Paste your code or upload a file for comprehensive AI-powered review</p>
+        </div>
+
+        <div class="review-container">
+            <!-- Left: Code Input -->
+            <div class="code-input-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-keyboard"></i> Your Code</h3>
+                    <div class="language-selector">
+                        <select id="languageSelect">
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="java">Java</option>
+                            <option value="cpp">C++</option>
+                            <option value="php">PHP</option>
+                            <option value="ruby">Ruby</option>
+                            <option value="go">Go</option>
+                            <option value="rust">Rust</option>
+                            <option value="typescript">TypeScript</option>
+                        </select>
+                        <button id="themeToggle" class="btn-icon">
+                            <i class="fas fa-moon"></i> Dark
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="code-editor-container">
+                    <div class="editor-toolbar">
+                        <button id="uploadBtn" class="btn-toolbar">
+                            <i class="fas fa-upload"></i> Upload File
+                        </button>
+                        <button id="clearBtn" class="btn-toolbar">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                        <button id="sampleBtn" class="btn-toolbar">
+                            <i class="fas fa-vial"></i> Load Sample
+                        </button>
+                        <button id="formatBtn" class="btn-toolbar">
+                            <i class="fas fa-code"></i> Format
+                        </button>
+                        <div class="toolbar-spacer"></div>
+                        <div class="char-count">
+                            <span id="charCount">0</span> characters
+                        </div>
+                    </div>
+                    
+                    <textarea id="codeInput" class="code-editor" placeholder="Paste your code here or click upload...">
+def calculate_average(numbers):
+    total = 0
+    for num in numbers:
+        total += num
+    average = total / len(numbers)
+    return average
+
+def process_user_input(user_input):
+    # Security issue: direct eval
+    result = eval(user_input)
+    return result
+
+class UserData:
+    def __init__(self, name, email):
+        self.name = name
+        self.email = email
+    
+    def get_email(self):
+        return self.email
+    
+    def validate_email(self):
+        if '@' in self.email:
+            return True
+        return False
+
+def handle_request(data):
+    try:
+        response = process_data(data)
+        return response
+    except:
+        return None
+
+# Performance issue: nested loops
+def find_duplicates(items):
+    duplicates = []
+    for i in range(len(items)):
+        for j in range(i+1, len(items)):
+            if items[i] == items[j]:
+                duplicates.append(items[i])
+    return duplicates</textarea>
+                    
+                    <div class="editor-footer">
+                        <div class="hint">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Supports large files up to 10,000 lines. Multi-module projects analyzed with compressed context.</span>
+                        </div>
+                        <button id="reviewBtn" class="btn-primary btn-lg">
+                            <i class="fas fa-search"></i> Analyze Code
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="upload-section">
+                    <input type="file" id="fileUpload" accept=".py,.js,.java,.cpp,.php,.rb,.go,.rs,.ts,.jsx,.tsx,.txt" style="display: none;">
+                    <div class="upload-dropzone" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Drag & drop your code files here</p>
+                        <p class="upload-sub">or click to browse (max 1MB)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Review Results -->
+            <div class="review-output-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-chart-bar"></i> Analysis Results</h3>
+                    <div class="status-indicator">
+                        <span id="statusText">Ready for review</span>
+                        <div class="status-dot" id="statusDot"></div>
+                    </div>
+                </div>
+                
+                <div class="results-container">
+                    <!-- Summary Cards -->
+                    <div class="summary-cards">
+                        <div class="summary-card critical">
+                            <div class="card-icon">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-value" id="criticalCount">0</div>
+                                <div class="card-label">Critical Issues</div>
+                            </div>
+                        </div>
+                        <div class="summary-card major">
+                            <div class="card-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-value" id="majorCount">0</div>
+                                <div class="card-label">Major Issues</div>
+                            </div>
+                        </div>
+                        <div class="summary-card minor">
+                            <div class="card-icon">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-value" id="minorCount">0</div>
+                                <div class="card-label">Minor Issues</div>
+                            </div>
+                        </div>
+                        <div class="summary-card score">
+                            <div class="card-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="card-content">
+                                <div class="card-value" id="qualityScore">100</div>
+                                <div class="card-label">Quality Score</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Issues List -->
+                    <div class="issues-section">
+                        <div class="issues-header">
+                            <h4><i class="fas fa-bug"></i> Detected Issues</h4>
+                            <div class="issues-filter">
+                                <button class="filter-btn active" data-filter="all">All</button>
+                                <button class="filter-btn" data-filter="critical">Critical</button>
+                                <button class="filter-btn" data-filter="major">Major</button>
+                                <button class="filter-btn" data-filter="minor">Minor</button>
+                            </div>
+                        </div>
+                        
+                        <div class="issues-list" id="issuesList">
+                            <div class="empty-state">
+                                <div class="empty-icon">
+                                    <i class="fas fa-code-branch"></i>
+                                </div>
+                                <h3>No Issues Found</h3>
+                                <p>Your code appears clean! Click "Analyze Code" to perform a review.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Analysis Details -->
+                    <div class="details-section">
+                        <div class="details-tabs">
+                            <button class="tab-btn active" data-tab="security">Security</button>
+                            <button class="tab-btn" data-tab="performance">Performance</button>
+                            <button class="tab-btn" data-tab="best-practices">Best Practices</button>
+                            <button class="tab-btn" data-tab="metrics">Metrics</button>
+                        </div>
+                        
+                        <div class="tab-content active" id="securityTab">
+                            <div class="detail-item">
+                                <div class="detail-header">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <h5>Security Vulnerabilities</h5>
+                                </div>
+                                <div class="detail-body" id="securityIssues">
+                                    No security issues detected.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" id="performanceTab">
+                            <div class="detail-item">
+                                <div class="detail-header">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                    <h5>Performance Optimizations</h5>
+                                </div>
+                                <div class="detail-body" id="performanceIssues">
+                                    No performance issues detected.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" id="bestPracticesTab">
+                            <div class="detail-item">
+                                <div class="detail-header">
+                                    <i class="fas fa-book"></i>
+                                    <h5>Best Practices Compliance</h5>
+                                </div>
+                                <div class="detail-body" id="bestPracticeIssues">
+                                    Following language best practices.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" id="metricsTab">
+                            <div class="detail-item">
+                                <div class="detail-header">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <h5>Code Metrics</h5>
+                                </div>
+                                <div class="detail-body">
+                                    <div class="metrics-grid">
+                                        <div class="metric">
+                                            <div class="metric-value" id="linesOfCode">0</div>
+                                            <div class="metric-label">Lines of Code</div>
+                                        </div>
+                                        <div class="metric">
+                                            <div class="metric-value" id="functionsCount">0</div>
+                                            <div class="metric-label">Functions</div>
+                                        </div>
+                                        <div class="metric">
+                                            <div class="metric-value" id="complexityScore">0</div>
+                                            <div class="metric-label">Complexity Score</div>
+                                        </div>
+                                        <div class="metric">
+                                            <div class="metric-value" id="maintainabilityIndex">100</div>
+                                            <div class="metric-label">Maintainability</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="section-header">
+            <h2><i class="fas fa-star"></i> Advanced Features</h2>
+            <p>Powered by compressed context processing and AI analysis</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-compress-alt"></i>
+                </div>
+                <h3>Compressed Context</h3>
+                <p>Analyzes large files and multi-module projects with 70% token reduction while preserving accuracy.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Key function identification</li>
+                    <li><i class="fas fa-check"></i> Control flow analysis</li>
+                    <li><i class="fas fa-check"></i> Dependency mapping</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Security Analysis</h3>
+                <p>Detects vulnerabilities, unsafe operations, and security anti-patterns with line-level precision.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> SQL injection detection</li>
+                    <li><i class="fas fa-check"></i> XSS vulnerabilities</li>
+                    <li><i class="fas fa-check"></i> Hard-coded secrets</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </div>
+                                <h3>Performance Review</h3>
+                                <p>Identifies bottlenecks, memory leaks, and inefficient algorithms with optimization suggestions.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check"></i> Time complexity analysis</li>
+                                    <li><i class="fas fa-check"></i> Memory usage patterns</li>
+                                    <li><i class="fas fa-check"></i> I/O optimization</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                <h3>Best Practices</h3>
+                                <p>Enforces language-specific coding standards, design patterns, and architectural principles.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check"></i> PEP 8 / ESLint compliance</li>
+                                    <li><i class="fas fa-check"></i> Design pattern adherence</li>
+                                    <li><i class="fas fa-check"></i> Documentation checks</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- How It Works -->
+                    <section id="how-it-works" class="process-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-cogs"></i> How It Works</h2>
+                            <p>Four-step process for comprehensive code analysis</p>
+                        </div>
+                        
+                        <div class="process-steps">
+                            <div class="process-step">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <h3>Context Compression</h3>
+                                    <p>Identifies key functions, classes, and control flow to reduce context size by 70% while preserving accuracy.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="process-step">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <h3>Multi-Layer Analysis</h3>
+                                    <p>Performs bug detection, security scanning, performance checking, and best practice enforcement simultaneously.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="process-step">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <h3>Prioritized Feedback</h3>
+                                    <p>Classifies issues by severity (Critical, Major, Minor) with actionable fix suggestions and line references.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="process-step">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
+                                    <h3>Developer-Friendly Output</h3>
+                                    <p>Delivers concise, clear feedback optimized for developer workflows with no speculative issues.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Footer -->
+                    <footer class="footer">
+                        <div class="footer-container">
+                            <div class="footer-brand">
+                                <div class="logo">
+                                    <i class="fas fa-code"></i>
+                                    <span>CodeReview<span class="logo-highlight">AI</span></span>
+                                </div>
+                                <p>Automated Code Review Assistant</p>
+                                <p class="footer-tagline">Specialized in software quality, security, and best practices</p>
+                            </div>
+                            
+                            <div class="footer-links">
+                                <div class="footer-column">
+                                    <h4>Features</h4>
+                                    <a href="#features">Security Analysis</a>
+                                    <a href="#features">Performance Review</a>
+                                    <a href="#features">Best Practices</a>
+                                    <a href="#features">Compressed Context</a>
+                                </div>
+                                
+                                <div class="footer-column">
+                                    <h4>Technology</h4>
+                                    <a href="#how-it-works">AI Processing</a>
+                                    <a href="#how-it-works">Context Compression</a>
+                                    <a href="#how-it-works">Multi-Layer Analysis</a>
+                                    <a href="#how-it-works">Prioritized Feedback</a>
+                                </div>
+                                
+                                <div class="footer-column">
+                                    <h4>Languages</h4>
+                                    <span>Python</span>
+                                    <span>JavaScript</span>
+                                    <span>Java</span>
+                                    <span>C++</span>
+                                    <span>10+ languages</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="footer-bottom">
+                            <p>&copy; 2024 CodeReviewAI. Automated Code Review Assistant. Frontend: HTML/CSS/JS | Backend: Python AI Processing</p>
+                            <p class="footer-note">No database required - All processing with compressed context in memory</p>
+                        </div>
+                    </footer>
+
+                    <!-- Loading Overlay -->
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="loading-content">
+                            <div class="loading-spinner"></div>
+                            <h3>Analyzing Your Code</h3>
+                            <p>Compressing context and performing multi-layer analysis...</p>
+                            <div class="loading-steps">
+                                <div class="loading-step active">Context Compression</div>
+                                <div class="loading-step">Security Analysis</div>
+                                <div class="loading-step">Performance Review</div>
+                                <div class="loading-step">Best Practices Check</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notification -->
+                    <div class="notification" id="notification">
+                        <div class="notification-content">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="notificationText">Code analysis completed successfully!</span>
+                        </div>
+                    </div> 
+
+                    <script>
+                        // DOM Elements
+                        const codeInput = document.getElementById('codeInput');
+                        const charCount = document.getElementById('charCount');
+                        const languageSelect = document.getElementById('languageSelect');
+                        const themeToggle = document.getElementById('themeToggle');
+                        const uploadBtn = document.getElementById('uploadBtn');
+                        const clearBtn = document.getElementById('clearBtn');
+                        const sampleBtn = document.getElementById('sampleBtn');
+                        const formatBtn = document.getElementById('formatBtn');
+                        const reviewBtn = document.getElementById('reviewBtn');
+                        const fileUpload = document.getElementById('fileUpload');
+                        const dropZone = document.getElementById('dropZone');
+                        const issuesList = document.getElementById('issuesList');
+                        const filterBtns = document.querySelectorAll('.filter-btn');
+                        const tabBtns = document.querySelectorAll('.tab-btn');
+                        const tabContents = document.querySelectorAll('.tab-content');
+                        const loadingOverlay = document.getElementById('loadingOverlay');
+                        const notification = document.getElementById('notification');
+                        
+                        // Count Elements
+                        const criticalCount = document.getElementById('criticalCount');
+                        const majorCount = document.getElementById('majorCount');
+                        const minorCount = document.getElementById('minorCount');
+                        const qualityScore = document.getElementById('qualityScore');
+                        
+                        // Detail Elements
+                        const securityIssues = document.getElementById('securityIssues');
+                        const performanceIssues = document.getElementById('performanceIssues');
+                        const bestPracticeIssues = document.getElementById('bestPracticeIssues');
+                        
+                        // Metrics Elements
+                        const linesOfCode = document.getElementById('linesOfCode');
+                        const functionsCount = document.getElementById('functionsCount');
+                        const complexityScore = document.getElementById('complexityScore');
+                        const maintainabilityIndex = document.getElementById('maintainabilityIndex');
+                        
+                        // Status Elements
+                        const statusText = document.getElementById('statusText');
+                        const statusDot = document.getElementById('statusDot');
+                        
+                        // Sample code for different languages
+                        const sampleCode = {
+                            python: `def calculate_factorial(n):
+    """Calculate factorial of a number."""
+    if n < 0:
+        return None
+    result = 1
+    for i in range(1, n + 1):
+        result *= i
+    return result
+
+def insecure_password_check(password):
+    # Security issue: weak password check
+    if password == "admin123":
+        return True
+    return False
+
+def process_data(data_list):
+    # Performance issue: O(n^2) complexity
+    result = []
+    for i in range(len(data_list)):
+        for j in range(len(data_list)):
+            if data_list[i] == data_list[j]:
+                result.append((i, j))
+    return result`,
+                            
+                            javascript: `function calculateTotal(items) {
+    let total = 0;
+    for (let i = 0; i < items.length; i++) {
+        total += items[i].price;
+    }
+    return total;
+}
+
+// Security issue: innerHTML usage
+function renderContent(content) {
+    document.getElementById('content').innerHTML = content;
+}
+
+// Performance issue: multiple DOM queries in loop
+function updateElements() {
+    for (let i = 0; i < 100; i++) {
+        document.querySelector('.item').style.color = 'red';
+    }
+}`,
+                            
+                            java: `public class Calculator {
+    public int add(int a, int b) {
+        return a + b;
+    }
+    
+    // Security issue: hardcoded credentials
+    private String password = "password123";
+    
+    // Performance issue: string concatenation in loop
+    public String buildString(String[] parts) {
+        String result = "";
+        for (String part : parts) {
+            result += part;
+        }
+        return result;
+    }
+}`,
+                            
+                            cpp: `#include <iostream>
+#include <vector>
+
+// Security issue: buffer overflow potential
+void copyString(char* dest, const char* src) {
+    int i = 0;
+    while (src[i] != '\\0') {
+        dest[i] = src[i];
+        i++;
+    }
+    dest[i] = '\\0';
+}
+
+// Performance issue: pass by value
+void processVector(std::vector<int> data) {
+    for (int i = 0; i < data.size(); i++) {
+        std::cout << data[i] << std::endl;
+    }
+}`,
+                            
+                            php: `<?php
+function getUserData($userId) {
+    // Security issue: SQL injection
+    $query = "SELECT * FROM users WHERE id = " . $userId;
+    $result = mysql_query($query);
+    return mysql_fetch_assoc($result);
+}
+
+// Security issue: XSS vulnerability
+function displayMessage($message) {
+    echo "<div>" . $message . "</div>";
+}
+
+// Performance issue: file operations in loop
+function readMultipleFiles($files) {
+    foreach ($files as $file) {
+        $content = file_get_contents($file);
+        echo $content;
+    }
+}
+?>`
+                        };
+                        
+                        // Initialize
+                        document.addEventListener('DOMContentLoaded', function() {
+                            updateCharCount();
+                            setupEventListeners();
+                            setupDragAndDrop();
+                            updateSampleCode();
+                        });
+                        
+                        // Event Listeners
+                        function setupEventListeners() {
+                            // Code input events
+                            codeInput.addEventListener('input', updateCharCount);
+                            codeInput.addEventListener('input', updateCodeMetrics);
+                            
+                            // Theme toggle
+                            themeToggle.addEventListener('click', toggleTheme);
+                            
+                            // Language selector
+                            languageSelect.addEventListener('change', updateSampleCode);
+                            
+                            // Toolbar buttons
+                            uploadBtn.addEventListener('click', () => fileUpload.click());
+                            clearBtn.addEventListener('click', clearCode);
+                            sampleBtn.addEventListener('click', loadSampleCode);
+                            formatBtn.addEventListener('click', formatCode);
+                            reviewBtn.addEventListener('click', analyzeCode);
+                            
+                            // File upload
+                            fileUpload.addEventListener('change', handleFileUpload);
+                            
+                            // Filter buttons
+                            filterBtns.forEach(btn => {
+                                btn.addEventListener('click', () => {
+                                    filterBtns.forEach(b => b.classList.remove('active'));
+                                    btn.classList.add('active');
+                                    filterIssues(btn.dataset.filter);
+                                });
+                            });
+                            
+                            // Tab buttons
+                            tabBtns.forEach(btn => {
+                                btn.addEventListener('click', () => {
+                                    tabBtns.forEach(b => b.classList.remove('active'));
+                                    tabContents.forEach(c => c.classList.remove('active'));
+                                    btn.classList.add('active');
+                                    document.getElementById(btn.dataset.tab + 'Tab').classList.add('active');
+                                });
+                            });
+                            
+                            // Mobile menu toggle
+                            document.querySelector('.menu-toggle').addEventListener('click', toggleMobileMenu);
+                        }
+                        
+                        // Drag and Drop
+                        function setupDragAndDrop() {
+                            dropZone.addEventListener('click', () => fileUpload.click());
+                            
+                            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                                dropZone.addEventListener(eventName, preventDefaults, false);
+                            });
+                            
+                            function preventDefaults(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
+                            
+                            ['dragenter', 'dragover'].forEach(eventName => {
+                                dropZone.addEventListener(eventName, highlight, false);
+                            });
+                            
+                            ['dragleave', 'drop'].forEach(eventName => {
+                                dropZone.addEventListener(eventName, unhighlight, false);
+                            });
+                            
+                            function highlight() {
+                                dropZone.style.borderColor = '#6366f1';
+                                dropZone.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
+                            }
+                            
+                            function unhighlight() {
+                                dropZone.style.borderColor = '';
+                                dropZone.style.backgroundColor = '';
+                            }
+                            
+                            dropZone.addEventListener('drop', handleDrop, false);
+                            
+                            function handleDrop(e) {
+                                const dt = e.dataTransfer;
+                                const files = dt.files;
+                                
+                                if (files.length > 0) {
+                                    readFile(files[0]);
+                                }
+                            }
+                        }
+                        
+                        // Functions
+                        function updateCharCount() {
+                            const count = codeInput.value.length;
+                            charCount.textContent = count.toLocaleString();
+                        }
+                        
+                        function updateCodeMetrics() {
+                            const code = codeInput.value;
+                            const lines = code.split('\n').length;
+                            const functions = (code.match(/def\s+\w+|function\s+\w+|public\s+\w+\s+\w+\(/g) || []).length;
+                            const complexity = Math.min(Math.floor(lines / 10) + functions * 3, 100);
+                            const maintainability = Math.max(100 - complexity, 20);
+                            
+                            linesOfCode.textContent = lines;
+                            functionsCount.textContent = functions;
+                            complexityScore.textContent = complexity;
+                            maintainabilityIndex.textContent = maintainability;
+                        }
+                        
+                        function toggleTheme() {
+                            document.body.classList.toggle('light-theme');
+                            const icon = themeToggle.querySelector('i');
+                            const text = themeToggle.querySelector('span') || document.createElement('span');
+                            
+                            if (document.body.classList.contains('light-theme')) {
+                                icon.className = 'fas fa-sun';
+                                text.textContent = ' Light';
+                                themeToggle.appendChild(text);
+                            } else {
+                                icon.className = 'fas fa-moon';
+                                text.textContent = ' Dark';
+                                themeToggle.appendChild(text);
+                            }
+                        }
+                        
+                        function updateSampleCode() {
+                            const lang = languageSelect.value;
+                            if (sampleCode[lang]) {
+                                codeInput.placeholder = `Paste your ${lang} code here...`;
+                            }
+                        }
+                        
+                        function clearCode() {
+                            codeInput.value = '';
+                            updateCharCount();
+                            updateCodeMetrics();
+                            showNotification('Code cleared successfully');
+                        }
+                        
+                        function loadSampleCode() {
+                            const lang = languageSelect.value;
+                            codeInput.value = sampleCode[lang] || sampleCode.python;
+                            updateCharCount();
+                            updateCodeMetrics();
+                            showNotification('Sample code loaded');
+                        }
+                        
+                        function formatCode() {
+                            const lang = languageSelect.value;
+                            let code = codeInput.value;
+                            
+                            // Simple formatting based on language
+                            switch(lang) {
+                                case 'python':
+                                    // Indent Python code
+                                    code = code.replace(/^(\s*)/gm, (match) => {
+                                        const indent = Math.floor(match.length / 4) * 4;
+                                        return ' '.repeat(indent);
+                                    });
+                                    break;
+                                case 'javascript':
+                                case 'java':
+                                case 'cpp':
+                                    // Add semicolons if missing at end of lines
+                                    code = code.replace(/([^;{}])\n/g, '$1;\n');
+                                    break;
+                            }
+                            
+                            codeInput.value = code;
+                            showNotification('Code formatted');
+                        }
+                        
+                        function handleFileUpload(event) {
+                            const file = event.target.files[0];
+                            if (file) {
+                                readFile(file);
+                            }
+                        }
+                        
+                        function readFile(file) {
+                            if (file.size > 1048576) { // 1MB limit
+                                showNotification('File too large. Maximum size is 1MB.', true);
+                                return;
+                            }
+                            
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                codeInput.value = e.target.result;
+                                updateCharCount();
+                                updateCodeMetrics();
+                                
+                                // Try to detect language from file extension
+                                const ext = file.name.split('.').pop().toLowerCase();
+                                const langMap = {
+                                    'py': 'python',
+                                    'js': 'javascript',
+                                    'java': 'java',
+                                    'cpp': 'cpp',
+                                    'php': 'php',
+                                    'rb': 'ruby',
+                                    'go': 'go',
+                                    'rs': 'rust',
+                                    'ts': 'typescript'
+                                };
+                                
+                                if (langMap[ext]) {
+                                    languageSelect.value = langMap[ext];
+                                    updateSampleCode();
+                                }
+                                
+                                showNotification(`File "${file.name}" loaded successfully`);
+                            };
+                            
+                            reader.readAsText(file);
+                        }
+                        
+                        function analyzeCode() {
+                            const code = codeInput.value.trim();
+                            if (!code) {
+                                showNotification('Please enter some code to analyze', true);
+                                return;
+                            }
+                            
+                            // Show loading overlay
+                            loadingOverlay.style.display = 'flex';
+                            statusText.textContent = 'Analyzing...';
+                            statusDot.style.backgroundColor = '#f59e0b';
+                            
+                            // Simulate AI analysis with timeout
+                            setTimeout(() => {
+                                performAnalysis(code);
+                                loadingOverlay.style.display = 'none';
+                                statusText.textContent = 'Analysis complete';
+                                statusDot.style.backgroundColor = '#10b981';
+                                showNotification('Code analysis completed successfully');
+                            }, 2000);
+                        }
+                        
+                        function performAnalysis(code) {
+                            const lang = languageSelect.value;
+                            const lines = code.split('\n').length;
+                            
+                            // Generate simulated issues based on code content
+                            const issues = generateIssues(code, lang);
+                            const metrics = calculateMetrics(code, lang);
+                            
+                            // Update summary counts
+                            const critical = issues.filter(i => i.severity === 'critical').length;
+                            const major = issues.filter(i => i.severity === 'major').length;
+                            const minor = issues.filter(i => i.severity === 'minor').length;
+                            const score = Math.max(100 - (critical * 10 + major * 5 + minor * 2), 0);
+                            
+                            criticalCount.textContent = critical;
+                            majorCount.textContent = major;
+                            minorCount.textContent = minor;
+                            qualityScore.textContent = score;
+                            
+                            // Update details
+                            updateDetails(issues, lang);
+                            
+                            // Display issues
+                            displayIssues(issues);
+                            
+                            // Update metrics
+                            updateCodeMetrics();
+                        }
+                        
+                        function generateIssues(code, lang) {
+                            const issues = [];
+                            
+                            // Check for security issues
+                            if (code.includes('eval(') || code.includes('exec(')) {
+                                issues.push({
+                                    severity: 'critical',
+                                    title: 'Use of eval() or exec()',
+                                    line: getLineNumber(code, 'eval'),
+                                    description: 'Using eval() or exec() can lead to code injection vulnerabilities.',
+                                    suggestion: 'Use safer alternatives like ast.literal_eval() or proper parsing.'
+                                });
+                            }
+                            
+                            if (code.includes('password') && code.includes('123')) {
+                                issues.push({
+                                    severity: 'critical',
+                                    title: 'Hard-coded credentials',
+                                    line: getLineNumber(code, 'password'),
+                                    description: 'Hard-coded passwords or secrets in source code.',
+                                    suggestion: 'Use environment variables or secure credential storage.'
+                                });
+                            }
+                            
+                            if (code.includes('innerHTML') || code.includes('document.write')) {
+                                issues.push({
+                                    severity: 'major',
+                                    title: 'Potential XSS vulnerability',
+                                    line: getLineNumber(code, 'innerHTML'),
+                                    description: 'Direct DOM manipulation can lead to XSS attacks.',
+                                    suggestion: 'Use textContent or proper sanitization libraries.'
+                                });
+                            }
+                            
+                            // Check for performance issues
+                            if (code.includes('for') && code.includes('for') && countOccurrences(code, 'for') > 1) {
+                                issues.push({
+                                    severity: 'major',
+                                    title: 'Nested loops detected',
+                                    line: getLineNumber(code, 'for'),
+                                    description: 'Nested loops can lead to O(n²) time complexity.',
+                                    suggestion: 'Consider using hash maps or more efficient algorithms.'
+                                });
+                            }
+                            
+                            if (code.includes('+=') && code.includes('for') && code.includes('string')) {
+                                issues.push({
+                                    severity: 'minor',
+                                    title: 'String concatenation in loop',
+                                    line: getLineNumber(code, '+='),
+                                    description: 'Repeated string concatenation in loops is inefficient.',
+                                    suggestion: 'Use array.join() or string builders.'
+                                });
+                            }
+                            
+                            // Check for best practices
+                            if (!code.includes('def ') && !code.includes('function ') && !code.includes('class ') && lines > 10) {
+                                issues.push({
+                                    severity: 'minor',
+                                    title: 'Large monolithic function',
+                                    line: 1,
+                                    description: 'Code could benefit from better modularization.',
+                                    suggestion: 'Break down into smaller, focused functions.'
+                                });
+                            }
+                            
+                            if (code.includes('try:') && code.includes('except:')) {
+                                issues.push({
+                                    severity: 'minor',
+                                    title: 'Broad exception handling',
+                                    line: getLineNumber(code, 'except'),
+                                    description: 'Catching all exceptions can hide bugs.',
+                                    suggestion: 'Catch specific exceptions instead of using bare except.'
+                                });
+                            }
+                            
+                            return issues;
+                            
+                            function getLineNumber(code, search) {
+                                const lines = code.split('\n');
+                                for (let i = 0; i < lines.length; i++) {
+                                    if (lines[i].includes(search)) return i + 1;
+                                }
+                                return 1;
+                            }
+                            
+                            function countOccurrences(str, substr) {
+                                return str.split(substr).length - 1;
+                            }
+                        }
+                        
+                        function calculateMetrics(code, lang) {
+                            const lines = code.split('\n').length;
+                            const functions = (code.match(/def\s+\w+|function\s+\w+|public\s+\w+\s+\w+\(/g) || []).length;
+                            const classes = (code.match(/class\s+\w+/g) || []).length;
+                            const comments = (code.match(/#[^\n]*|\/\/[^\n]*|\/\*[\s\S]*?\*\//g) || []).length;
+                            
+                            return {
+                                lines,
+                                functions,
+                                classes,
+                                comments,
+                                commentRatio: lines > 0 ? Math.round((comments / lines) * 100) : 0
+                            };
+                        }
+                        
+                        function updateDetails(issues, lang) {
+                            const securityIssuesList = issues.filter(i => 
+                                i.title.includes('eval') || 
+                                i.title.includes('password') ||
+                                i.title.includes('XSS') ||
+                                i.title.includes('injection')
+                            );
+                            
+                            const performanceIssuesList = issues.filter(i => 
+                                i.title.includes('loop') || 
+                                i.title.includes('performance') ||
+                                i.title.includes('concatenation')
+                            );
+                            
+                            const bestPracticeIssuesList = issues.filter(i => 
+                                i.title.includes('function') || 
+                                i.title.includes('exception') ||
+                                i.severity === 'minor'
+                            );
+                            
+                            securityIssues.innerHTML = securityIssuesList.length > 0 
+                                ? securityIssuesList.map(i => `<div class="issue-detail">• ${i.title}: ${i.description}</div>`).join('')
+                                : 'No security issues detected.';
+                                
+                            performanceIssues.innerHTML = performanceIssuesList.length > 0
+                                ? performanceIssuesList.map(i => `<div class="issue-detail">• ${i.title}: ${i.description}</div>`).join('')
+                                : 'No performance issues detected.';
+                                
+                            bestPracticeIssues.innerHTML = bestPracticeIssuesList.length > 0
+                                ? bestPracticeIssuesList.map(i => `<div class="issue-detail">• ${i.title}: ${i.description}</div>`).join('')
+                                : 'Following language best practices.';
+                        }
+                        
+                        function displayIssues(issues) {
+                            if (issues.length === 0) {
+                                issuesList.innerHTML = `
+                                    <div class="empty-state">
+                                        <div class="empty-icon">
+                                            <i class="fas fa-code-branch"></i>
+                                        </div>
+                                        <h3>No Issues Found</h3>
+                                        <p>Your code appears clean! Click "Analyze Code" to perform a review.</p>
+                                    </div>
+                                `;
+                                return;
+                            }
+                            
+                            issuesList.innerHTML = issues.map(issue => `
+                                <div class="issue-item" data-severity="${issue.severity}">
+                                    <div class="issue-header">
+                                        <div class="issue-title">
+                                            <i class="fas fa-bug"></i>
+                                            ${issue.title}
+                                        </div>
+                                        <div class="issue-badge ${issue.severity}-badge">
+                                            ${issue.severity.toUpperCase()}
+                                        </div>
+                                    </div>
+                                    <div class="issue-line">
+                                        <i class="fas fa-code"></i> Line ${issue.line}
+                                    </div>
+                                    <div class="issue-desc">
+                                        ${issue.description}
+                                    </div>
+                                    <div class="issue-suggestion">
+                                        <strong>Suggestion:</strong> ${issue.suggestion}
+                                    </div>
+                                </div>
+                            `).join('');
+                        }
+                        
+                        function filterIssues(filter) {
+                            const issues = document.querySelectorAll('.issue-item');
+                            
+                            issues.forEach(issue => {
+                                if (filter === 'all' || issue.dataset.severity === filter) {
+                                    issue.style.display = 'block';
+                                } else {
+                                    issue.style.display = 'none';
+                                }
+                            });
+                            
+                            // If no issues visible after filtering, show empty state
+                            const visibleIssues = Array.from(issues).filter(issue => 
+                                issue.style.display !== 'none'
+                            );
+                            
+                            if (visibleIssues.length === 0 && issues.length > 0) {
+                                issuesList.innerHTML = `
+                                    <div class="empty-state">
+                                        <div class="empty-icon">
+                                            <i class="fas fa-filter"></i>
+                                        </div>
+                                        <h3>No ${filter} issues</h3>
+                                        <p>Try selecting a different filter to see other issues.</p>
+                                    </div>
+                                `;
+                            }
+                        }
+                        
+                        function showNotification(message, isError = false) {
+                            const text = document.getElementById('notificationText');
+                            const icon = notification.querySelector('i');
+                            
+                            text.textContent = message;
+                            notification.style.backgroundColor = isError ? '#ef4444' : '#10b981';
+                            icon.className = isError ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+                            
+                            notification.style.display = 'flex';
+                            
+                            setTimeout(() => {
+                                notification.style.display = 'none';
+                            }, 3000);
+                        }
+                        
+                        function toggleMobileMenu() {
+                            const navLinks = document.querySelector('.nav-links');
+                            navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
+                        }
+                        
+                        // Initialize code metrics
+                        updateCodeMetrics();
+                    </script>
+                </body>
+                </html>
